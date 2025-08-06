@@ -5,7 +5,9 @@ Flask routes for API layer. Thin controllers delegate to Application layer.
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
 
-from ..infrastructure.persistence.db_models import db
+from flask import Blueprint, request, jsonify, current_app
+from datetime import datetime
+
 from ..infrastructure.persistence.sqlalchemy_repo import SQLAlchemyFinanceEntryRepository
 from ..application.entry_service import FinanceEntryService
 from ..domain.finance_entry.services import validate_entry_data
@@ -44,17 +46,27 @@ def add_entry():
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
     try:
+        # Validation is done via value objects logic in the domain service.
         validate_entry_data(data)
         service = get_service()
+        # Construct date argument robustly: accept ISO string or date object
+        entry_date = data.get("date")
+        if isinstance(entry_date, str):
+            try:
+                entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+            except Exception:
+                # Delegate parsing error to EntryDate value object
+                pass
         entry = service.create(
             description=data["description"],
             amount=data["amount"],
             category=data["category"],
-            entry_date=datetime.strptime(data["date"], "%Y-%m-%d").date()
+            entry_date=entry_date
         )
         return jsonify(entry.as_dict()), 201
     except Exception as e:
-        db.session.rollback()
+        # All exceptions should be handled by the application/domain/service; rollback infra if required.
+        # The repository itself should also handle its own transactions.
         return jsonify({"error": str(e)}), 400
 
 @api_bp.route("/entries/<int:entry_id>", methods=["PUT"])
@@ -71,15 +83,20 @@ def update_entry(entry_id):
     try:
         validate_entry_data(data, for_update=True)
         service = get_service()
-        # Only pass present fields, not all of them
         update_fields = {}
         for field in ["description", "amount", "category", "date"]:
             if field in data:
-                update_fields[field] = data[field]
+                # If "date" is provided as string, convert to date
+                if field == "date" and isinstance(data[field], str):
+                    try:
+                        update_fields[field] = datetime.strptime(data[field], "%Y-%m-%d").date()
+                    except Exception:
+                        update_fields[field] = data[field]  # let domain/value object throw
+                else:
+                    update_fields[field] = data[field]
         entry = service.update(entry_id, **update_fields)
         return jsonify(entry.as_dict()), 200
     except Exception as e:
-        db.session.rollback()
         if "Not found" in str(e):
             return jsonify({"error": "Entry not found"}), 404
         return jsonify({"error": str(e)}), 400
