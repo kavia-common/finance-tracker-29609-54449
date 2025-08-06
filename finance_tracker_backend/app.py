@@ -11,14 +11,43 @@ Uses SQLite as the backend database (will be configured in future steps).
 """
 
 from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from datetime import date
+
+db = SQLAlchemy()
+
+# PUBLIC_INTERFACE
+class FinanceEntry(db.Model):
+    """
+    Model representing a finance entry.
+    Fields:
+        id: Integer, primary key, auto-increment
+        description: String, textual description of the entry
+        amount: Float, value for the entry
+        category: String, category for the entry
+        date: Date, date of the entry
+    """
+    __tablename__ = 'finance_entries'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    description = db.Column(db.String(255), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    category = db.Column(db.String(64), nullable=False)
+    date = db.Column(db.Date, nullable=False)
 
 def create_app():
     """ PUBLIC_INTERFACE
     Factory function to create and configure the Flask app instance.
+    Sets up Flask, SQLAlchemy, and initializes the SQLite database.
     """
     app = Flask(__name__)
+    # SQLite configuration; uses local file 'finance_db.sqlite'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///finance_db.sqlite'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
 
-    # Placeholder for future SQLite database initialization
+    # Create tables if db does not exist
+    with app.app_context():
+        db.create_all()
 
     @app.route('/entries', methods=['GET'])
     # PUBLIC_INTERFACE
