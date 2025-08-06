@@ -1,0 +1,1 @@
+# FinanceEntry aggregate domain marker

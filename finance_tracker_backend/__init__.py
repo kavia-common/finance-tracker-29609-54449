@@ -1,1 +1,1 @@
-# Marks backend as a package.
+# finance_tracker_backend is a package.

@@ -1,6 +1,13 @@
 # Finance Tracker Backend
 
-A lightweight Flask REST API for managing finance entries. Supports basic CRUD endpoints for finance records.
+A lightweight Flask REST API for managing finance entries (using DDD).
+
+> **NOTE:** The backend is designed using Domain Driven Design (DDD) layering:
+> - `domain/` – Pure business/domain logic (entities, value objects, repo interface)
+> - `application/` – Orchestrates business operations
+> - `infrastructure/` – DB/ORM/CORS/Flask config and repository implementation
+> - `api/` – Thin Flask routes/controllers
+> - `config/` – Settings
 
 ## Endpoints
 
@@ -18,5 +25,8 @@ A lightweight Flask REST API for managing finance entries. Supports basic CRUD e
    ```
 2. Run the application:
    ```
-   python app.py
+   python -m finance_tracker_backend.app
    ```
+
+The HTTP API is backward compatible but now sharply separated into layers for maintainability and testing.
+
